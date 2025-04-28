@@ -329,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ✅ Smart Format Function
+
 String formatAmount(double amount) {
   if (amount == amount.roundToDouble()) {
     return amount.toStringAsFixed(0);

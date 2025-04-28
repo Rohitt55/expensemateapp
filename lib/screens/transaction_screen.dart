@@ -71,7 +71,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
             TextField(
               controller: amountController,
               decoration: const InputDecoration(labelText: "Amount"),
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
             ),
             TextField(
               controller: categoryController,
@@ -87,7 +87,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
           TextButton(
             onPressed: () async {
               final amountText = amountController.text.trim();
-              if (amountText.isEmpty || int.tryParse(amountText) == null) {
+              if (amountText.isEmpty || double.tryParse(amountText) == null) { // ✅ double check
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Please enter valid amount')),
                 );
@@ -96,7 +96,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
 
               final updatedData = {
                 'id': transaction['id'],
-                'amount': int.parse(amountText),
+                'amount': double.parse(amountText), // ✅ double.parse
                 'category': categoryController.text,
                 'description': noteController.text,
                 'date': transaction['date'],
@@ -129,6 +129,14 @@ class _TransactionScreenState extends State<TransactionScreen> {
   void _deleteTransaction(int id) async {
     await DatabaseHelper.instance.deleteTransaction(id);
     _loadTransactions();
+  }
+
+  String formatAmount(double amount) {
+    if (amount == amount.roundToDouble()) {
+      return amount.toInt().toString();
+    } else {
+      return amount.toStringAsFixed(1);
+    }
   }
 
   @override
@@ -172,10 +180,11 @@ class _TransactionScreenState extends State<TransactionScreen> {
               itemCount: filteredTransactions.length,
               itemBuilder: (context, index) {
                 final tx = filteredTransactions[index];
+                final amount = (tx["amount"] as num).toDouble();
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   child: ListTile(
-                    title: Text("${tx["category"]} - ৳${tx["amount"]}"),
+                    title: Text("${tx["category"]} - ৳${formatAmount(amount)}"), // ✅ formatted display
                     subtitle: Text(
                         "${tx["description"]} • ${DateFormat.yMMMd().format(DateTime.parse(tx["date"]))}"),
                     trailing: Row(

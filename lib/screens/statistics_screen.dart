@@ -52,7 +52,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         if (txDate.year == day.year &&
             txDate.month == day.month &&
             txDate.day == day.day) {
-          total += tx['amount'] as int;
+          total += (tx['amount'] as num).toDouble(); // ✅ FIXED
         }
       }
       return BarChartGroupData(x: i, barRods: [
@@ -70,8 +70,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     Map<String, int> result = {};
     for (var tx in filteredByWeekAndType) {
       final category = tx['category'];
-      final amount = tx['amount'] as int;
-      result[category] = (result[category] ?? 0) + amount;
+      final amount = (tx['amount'] as num).toDouble(); // ✅ FIXED
+      result[category] = (result[category] ?? 0) + amount.toInt(); // ✅ Safe conversion
     }
     return result;
   }
@@ -113,7 +113,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           children: [
             Row(
               children: [
-                Text("Week: ", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text("Week: ", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () => _selectWeek(context),
