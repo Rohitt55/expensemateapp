@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io'; // ✅ Add for FileImage
+import 'dart:io';
 import '../db/database_helper.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -83,7 +83,8 @@ class _HomeScreenState extends State<HomeScreen> {
           FutureBuilder<SharedPreferences>(
             future: SharedPreferences.getInstance(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+              if (snapshot.connectionState == ConnectionState.done &&
+                  snapshot.hasData) {
                 final prefs = snapshot.data!;
                 final imagePath = prefs.getString('profile_image');
                 if (imagePath != null && File(imagePath).existsSync()) {
@@ -193,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            "৳${amount.toStringAsFixed(2)}",
+            "৳${formatAmount(amount)}",
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -299,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "৳${double.parse(tx['amount'].toString()).toStringAsFixed(2)}",
+                      "৳${formatAmount(double.parse(tx['amount'].toString()))}",
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold),
                     ),
@@ -325,5 +326,14 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+}
+
+// ✅ Smart Format Function
+String formatAmount(double amount) {
+  if (amount == amount.roundToDouble()) {
+    return amount.toStringAsFixed(0);
+  } else {
+    return amount.toStringAsFixed(2);
   }
 }
