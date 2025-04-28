@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../db/database_helper.dart';
 
 class TransactionScreen extends StatefulWidget {
@@ -31,18 +30,23 @@ class _TransactionScreenState extends State<TransactionScreen> {
 
   List<Map<String, dynamic>> get filteredTransactions {
     final now = DateTime.now();
-
     return transactions.where((tx) {
-      if (selectedType != 'All' && tx["type"] != selectedType) return false;
+      if (selectedType != 'All' && tx['type'] != selectedType) return false;
 
-      final txDate = DateTime.parse(tx["date"]);
+      final txDate = DateTime.parse(tx['date']);
+      final normalizedTxDate = DateTime(txDate.year, txDate.month, txDate.day);
 
       switch (selectedPeriod) {
         case 'Today':
-          return txDate.year == now.year && txDate.month == now.month && txDate.day == now.day;
+          final today = DateTime(now.year, now.month, now.day);
+          return normalizedTxDate == today;
         case 'Week':
-          final weekAgo = now.subtract(const Duration(days: 7));
-          return txDate.isAfter(weekAgo) || txDate.isAtSameMomentAs(weekAgo);
+          final startOfWeek = DateTime(now.year, now.month, now.day)
+              .subtract(Duration(days: now.weekday - 1));
+          final endOfWeek = startOfWeek.add(const Duration(days: 6));
+          return normalizedTxDate.isAtSameMomentAs(startOfWeek) ||
+              (normalizedTxDate.isAfter(startOfWeek) &&
+                  normalizedTxDate.isBefore(endOfWeek.add(const Duration(days: 1))));
         case 'Month':
           return txDate.year == now.year && txDate.month == now.month;
         case 'Year':
@@ -53,13 +57,28 @@ class _TransactionScreenState extends State<TransactionScreen> {
     }).toList();
   }
 
+  String getFormattedTransactionDate() {
+    final now = DateTime.now();
+    switch (selectedPeriod) {
+      case 'Today':
+        return DateFormat('d/M/yyyy').format(now);
+      case 'Week':
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        return "${DateFormat('d/M').format(startOfWeek)} - ${DateFormat('d/M').format(endOfWeek)}";
+      case 'Month':
+        return DateFormat('MMMM yyyy').format(now);
+      case 'Year':
+        return DateFormat('yyyy').format(now);
+      default:
+        return DateFormat('d/M/yyyy').format(now);
+    }
+  }
+
   void _showEditDialog(Map<String, dynamic> transaction) {
-    TextEditingController amountController =
-    TextEditingController(text: transaction["amount"].toString());
-    TextEditingController categoryController =
-    TextEditingController(text: transaction["category"]);
-    TextEditingController noteController =
-    TextEditingController(text: transaction["description"]);
+    final amountController = TextEditingController(text: transaction["amount"].toString());
+    final categoryController = TextEditingController(text: transaction["category"]);
+    final noteController = TextEditingController(text: transaction["description"]);
 
     showDialog(
       context: context,
@@ -87,16 +106,16 @@ class _TransactionScreenState extends State<TransactionScreen> {
           TextButton(
             onPressed: () async {
               final amountText = amountController.text.trim();
-              if (amountText.isEmpty || double.tryParse(amountText) == null) { // ✅ double check
+              if (amountText.isEmpty || double.tryParse(amountText) == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter valid amount')),
+                  const SnackBar(content: Text('Please enter a valid amount')),
                 );
                 return;
               }
 
               final updatedData = {
                 'id': transaction['id'],
-                'amount': double.parse(amountText), // ✅ double.parse
+                'amount': double.parse(amountText),
                 'category': categoryController.text,
                 'description': noteController.text,
                 'date': transaction['date'],
@@ -152,7 +171,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(8),
             child: Row(
               children: [
                 DropdownButton<String>(
@@ -160,7 +179,11 @@ class _TransactionScreenState extends State<TransactionScreen> {
                   items: periodOptions
                       .map((p) => DropdownMenuItem(value: p, child: Text(p)))
                       .toList(),
-                  onChanged: (value) => setState(() => selectedPeriod = value!),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedPeriod = value!;
+                    });
+                  },
                 ),
                 const SizedBox(width: 20),
                 DropdownButton<String>(
@@ -168,9 +191,27 @@ class _TransactionScreenState extends State<TransactionScreen> {
                   items: typeOptions
                       .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                       .toList(),
-                  onChanged: (value) => setState(() => selectedType = value!),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedType = value!;
+                    });
+                  },
                 ),
               ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Showing: ${getFormattedTransactionDate()}",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple,
+                ),
+              ),
             ),
           ),
           Expanded(
@@ -184,9 +225,10 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   child: ListTile(
-                    title: Text("${tx["category"]} - ৳${formatAmount(amount)}"), // ✅ formatted display
+                    title: Text("${tx["category"]} - ৳${formatAmount(amount)}"),
                     subtitle: Text(
-                        "${tx["description"]} • ${DateFormat.yMMMd().format(DateTime.parse(tx["date"]))}"),
+                      "${tx["description"]} • ${DateFormat.yMMMd().format(DateTime.parse(tx["date"]))}",
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

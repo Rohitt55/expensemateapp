@@ -51,11 +51,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       final directory = await getApplicationDocumentsDirectory();
-      final String fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.png'; // ✅ Unique filename
+      final String fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.png';
       final savedImage = await File(pickedFile.path).copy('${directory.path}/$fileName');
 
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('profile_image', savedImage.path); // ✅ Save correct path
+      await prefs.setString('profile_image', savedImage.path);
 
       setState(() {
         _profileImage = savedImage;

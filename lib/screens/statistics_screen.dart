@@ -52,7 +52,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         if (txDate.year == day.year &&
             txDate.month == day.month &&
             txDate.day == day.day) {
-          total += (tx['amount'] as num).toDouble(); // ✅ FIXED
+          total += (tx['amount'] as num).toDouble();
         }
       }
       return BarChartGroupData(x: i, barRods: [
@@ -70,8 +70,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     Map<String, int> result = {};
     for (var tx in filteredByWeekAndType) {
       final category = tx['category'];
-      final amount = (tx['amount'] as num).toDouble(); // ✅ FIXED
-      result[category] = (result[category] ?? 0) + amount.toInt(); // ✅ Safe conversion
+      final amount = (tx['amount'] as num).toDouble();
+      result[category] = (result[category] ?? 0) + amount.toInt();
     }
     return result;
   }

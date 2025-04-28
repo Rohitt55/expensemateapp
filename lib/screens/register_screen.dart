@@ -29,7 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     await DatabaseHelper.instance.registerUser(username, email, phone, password);
 
-    // ✅ Save email in SharedPreferences
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('email', email);
 

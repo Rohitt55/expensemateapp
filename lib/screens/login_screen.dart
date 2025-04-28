@@ -27,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final user = await DatabaseHelper.instance.loginUser(email, password);
     if (user != null) {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('email', user['email']); // ✅ Save logged-in user's email
+      await prefs.setString('email', user['email']);
       await prefs.setBool('isLoggedIn', true); // optional
 
       Navigator.pushReplacementNamed(context, '/home');

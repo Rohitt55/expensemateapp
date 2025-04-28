@@ -50,7 +50,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
 
     try {
-      final amount = double.parse(amountText); // ✅ Accept float/double input
+      final amount = double.parse(amountText);
 
       await DatabaseHelper.instance.addTransaction(
         amount,

@@ -25,22 +25,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadTransactions() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
     final data = await DatabaseHelper.instance.getAllTransactions();
     setState(() => transactions = data.reversed.toList());
   }
 
   List<Map<String, dynamic>> get filteredTransactions {
-    DateTime now = DateTime.now();
+    final now = DateTime.now();
     return transactions.where((tx) {
       final txDate = DateTime.parse(tx['date']);
+      final normalizedTxDate = DateTime(txDate.year, txDate.month, txDate.day);
+
       switch (selectedFilter) {
         case 'Today':
-          return txDate.year == now.year &&
-              txDate.month == now.month &&
-              txDate.day == now.day;
+          final today = DateTime(now.year, now.month, now.day);
+          return normalizedTxDate == today;
         case 'Week':
-          return txDate.isAfter(now.subtract(const Duration(days: 7)));
+          final startOfWeek = DateTime(now.year, now.month, now.day)
+              .subtract(Duration(days: now.weekday - 1));
+          final endOfWeek = startOfWeek.add(const Duration(days: 6));
+          return normalizedTxDate.isAtSameMomentAs(startOfWeek) ||
+              (normalizedTxDate.isAfter(startOfWeek) &&
+                  normalizedTxDate.isBefore(endOfWeek.add(const Duration(days: 1))));
         case 'Month':
           return txDate.year == now.year && txDate.month == now.month;
         case 'Year':
@@ -49,6 +54,24 @@ class _HomeScreenState extends State<HomeScreen> {
           return true;
       }
     }).toList();
+  }
+
+  String getFormattedDate() {
+    final now = DateTime.now();
+    switch (selectedFilter) {
+      case 'Today':
+        return DateFormat('d/M/yyyy').format(now);
+      case 'Week':
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        return "${DateFormat('d/M').format(startOfWeek)} - ${DateFormat('d/M').format(endOfWeek)}";
+      case 'Month':
+        return DateFormat('MMMM yyyy').format(now);
+      case 'Year':
+        return DateFormat('yyyy').format(now);
+      default:
+        return DateFormat('d/M/yyyy').format(now);
+    }
   }
 
   @override
@@ -71,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              DateFormat('d/M/yyyy').format(DateTime.now()),
+              getFormattedDate(),
               style: const TextStyle(
                   color: Colors.black87, fontWeight: FontWeight.bold),
             ),
@@ -79,40 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(color: Colors.black87, fontSize: 14)),
           ],
         ),
-        actions: [
-          FutureBuilder<SharedPreferences>(
-            future: SharedPreferences.getInstance(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done &&
-                  snapshot.hasData) {
-                final prefs = snapshot.data!;
-                final imagePath = prefs.getString('profile_image');
-                if (imagePath != null && File(imagePath).existsSync()) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: CircleAvatar(
-                      backgroundImage: FileImage(File(imagePath)),
-                    ),
-                  );
-                } else {
-                  return const Padding(
-                    padding: EdgeInsets.only(right: 12.0),
-                    child: CircleAvatar(
-                      backgroundImage: AssetImage('assets/images/user.png'),
-                    ),
-                  );
-                }
-              } else {
-                return const Padding(
-                  padding: EdgeInsets.only(right: 12.0),
-                  child: CircleAvatar(
-                    backgroundColor: Colors.blue,
-                  ),
-                );
-              }
-            },
-          ),
-        ],
+        actions: [_buildProfileImage()],
       ),
       body: Column(
         children: [
@@ -130,27 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(child: _buildTransactionList()),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: selectedIndex,
-        onTap: (index) async {
-          setState(() => selectedIndex = index);
-          if (index == 1) {
-            await Navigator.pushNamed(context, '/transactions');
-            _loadTransactions();
-          }
-          if (index == 2) Navigator.pushNamed(context, '/statistics');
-          if (index == 3) Navigator.pushNamed(context, '/profile');
-        },
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: "Transactions"),
-          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: "Statistics"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-      ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
       floatingActionButton: FloatingActionButton(
         onPressed: () =>
             Navigator.pushNamed(context, '/add').then((_) => _loadTransactions()),
@@ -158,6 +128,40 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(Icons.add, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    );
+  }
+
+  Widget _buildProfileImage() {
+    return FutureBuilder<SharedPreferences>(
+      future: SharedPreferences.getInstance(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+          final prefs = snapshot.data!;
+          final imagePath = prefs.getString('profile_image');
+          if (imagePath != null && File(imagePath).existsSync()) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: CircleAvatar(
+                backgroundImage: FileImage(File(imagePath)),
+              ),
+            );
+          } else {
+            return const Padding(
+              padding: EdgeInsets.only(right: 12.0),
+              child: CircleAvatar(
+                backgroundImage: AssetImage('assets/images/user.png'),
+              ),
+            );
+          }
+        } else {
+          return const Padding(
+            padding: EdgeInsets.only(right: 12.0),
+            child: CircleAvatar(
+              backgroundColor: Colors.blue,
+            ),
+          );
+        }
+      },
     );
   }
 
@@ -187,9 +191,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 size: 20,
               ),
               const SizedBox(width: 8),
-              Text(title,
-                  style: TextStyle(
-                      color: color, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                title,
+                style: TextStyle(
+                    color: color, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -214,7 +220,11 @@ class _HomeScreenState extends State<HomeScreen> {
         children: filterOptions.map((option) {
           final isSelected = selectedFilter == option;
           return GestureDetector(
-            onTap: () => setState(() => selectedFilter = option),
+            onTap: () {
+              setState(() {
+                selectedFilter = option;
+              });
+            },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 6),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -327,8 +337,31 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-}
 
+  Widget _buildBottomNavigationBar() {
+    return BottomNavigationBar(
+      currentIndex: selectedIndex,
+      onTap: (index) async {
+        setState(() => selectedIndex = index);
+        if (index == 1) {
+          await Navigator.pushNamed(context, '/transactions');
+          _loadTransactions();
+        }
+        if (index == 2) Navigator.pushNamed(context, '/statistics');
+        if (index == 3) Navigator.pushNamed(context, '/profile');
+      },
+      selectedItemColor: Colors.black,
+      unselectedItemColor: Colors.grey,
+      type: BottomNavigationBarType.fixed,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+        BottomNavigationBarItem(icon: Icon(Icons.list), label: "Transactions"),
+        BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: "Statistics"),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+      ],
+    );
+  }
+}
 
 String formatAmount(double amount) {
   if (amount == amount.roundToDouble()) {
