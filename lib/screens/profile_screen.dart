@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:csv/csv.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../db/database_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -50,10 +51,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       final directory = await getApplicationDocumentsDirectory();
-      final savedImage = await File(pickedFile.path).copy('${directory.path}/profile_image.png');
+      final String fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.png'; // ✅ Unique filename
+      final savedImage = await File(pickedFile.path).copy('${directory.path}/$fileName');
 
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('profile_image', savedImage.path);
+      await prefs.setString('profile_image', savedImage.path); // ✅ Save correct path
 
       setState(() {
         _profileImage = savedImage;
@@ -65,7 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('email') ?? '';
 
-    final allTransactions = await DatabaseHelper.instance.getAllTransactions(); // already user filtered
+    final allTransactions = await DatabaseHelper.instance.getAllTransactions();
     List<List<dynamic>> csvData = [
       ['ID', 'Amount', 'Category', 'Type', 'Date', 'Description'],
       ...allTransactions.map((tx) => [
@@ -79,14 +81,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ];
 
     String csv = const ListToCsvConverter().convert(csvData);
-    final directory = await getApplicationDocumentsDirectory();
-    final path = "${directory.path}/transactions_${email.replaceAll('@', '_').replaceAll('.', '_')}.csv";
-    final file = File(path);
-    await file.writeAsString(csv);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Exported to: $path")),
-    );
+    if (await Permission.manageExternalStorage.request().isGranted) {
+      Directory? downloadsDirectory;
+      if (Platform.isAndroid) {
+        downloadsDirectory = Directory('/storage/emulated/0/Download');
+      } else {
+        downloadsDirectory = await getApplicationDocumentsDirectory();
+      }
+
+      final path = "${downloadsDirectory.path}/transactions_${email.replaceAll('@', '_').replaceAll('.', '_')}.csv";
+      final file = File(path);
+      await file.writeAsString(csv);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.check_circle, color: Colors.green),
+              SizedBox(width: 10),
+              Text("Exported successfully to Downloads!")
+            ],
+          ),
+          backgroundColor: Colors.black87,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Storage permission denied. Please allow from settings."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   Future<void> _logout() async {

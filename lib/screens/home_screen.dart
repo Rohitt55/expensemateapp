@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ✅ Added
+import 'package:shared_preferences/shared_preferences.dart';
 import '../db/database_helper.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -27,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('email') ?? '';
     final data = await DatabaseHelper.instance.getAllTransactions();
-    // Data already filtered by user in database_helper
     setState(() => transactions = data.reversed.toList());
   }
 
@@ -238,6 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
       itemBuilder: (context, index) {
         final tx = limitedList[index];
         final isIncome = tx['type'] == 'Income';
+
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
@@ -255,6 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 isIncome ? Icons.arrow_downward : Icons.arrow_upward,
@@ -269,9 +270,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text(tx['category'],
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.black54)),
+                    Text(
+                      tx['description'] ?? '',
+                      style: const TextStyle(
+                          fontSize: 13, color: Colors.black54),
+                    ),
                   ],
                 ),
               ),
