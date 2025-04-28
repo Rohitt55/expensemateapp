@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io'; // ✅ Add for FileImage
 import '../db/database_helper.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -25,7 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadTransactions() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('email') ?? '';
     final data = await DatabaseHelper.instance.getAllTransactions();
     setState(() => transactions = data.reversed.toList());
   }
@@ -53,13 +53,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final int incomeTotal = filteredTransactions
+    final double incomeTotal = filteredTransactions
         .where((t) => t['type'] == 'Income')
-        .fold(0, (int sum, item) => sum + (item['amount'] as int));
+        .fold(0.0, (sum, item) => sum + double.parse(item['amount'].toString()));
 
-    final int expenseTotal = filteredTransactions
+    final double expenseTotal = filteredTransactions
         .where((t) => t['type'] == 'Expense')
-        .fold(0, (int sum, item) => sum + (item['amount'] as int));
+        .fold(0.0, (sum, item) => sum + double.parse(item['amount'].toString()));
 
     return Scaffold(
       backgroundColor: const Color(0xFFFDF7F0),
@@ -79,10 +79,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(color: Colors.black87, fontSize: 14)),
           ],
         ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 12.0),
-            child: CircleAvatar(backgroundColor: Colors.blue),
+        actions: [
+          FutureBuilder<SharedPreferences>(
+            future: SharedPreferences.getInstance(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+                final prefs = snapshot.data!;
+                final imagePath = prefs.getString('profile_image');
+                if (imagePath != null && File(imagePath).existsSync()) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: CircleAvatar(
+                      backgroundImage: FileImage(File(imagePath)),
+                    ),
+                  );
+                } else {
+                  return const Padding(
+                    padding: EdgeInsets.only(right: 12.0),
+                    child: CircleAvatar(
+                      backgroundImage: AssetImage('assets/images/user.png'),
+                    ),
+                  );
+                }
+              } else {
+                return const Padding(
+                  padding: EdgeInsets.only(right: 12.0),
+                  child: CircleAvatar(
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              }
+            },
           ),
         ],
       ),
@@ -133,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBalanceCard(String title, int amount, Color color) {
+  Widget _buildBalanceCard(String title, double amount, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       width: 160,
@@ -165,9 +192,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Text("৳$amount",
-              style: TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+          Text(
+            "৳${amount.toStringAsFixed(2)}",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -266,9 +298,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("৳${tx['amount']}",
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(
+                      "৳${double.parse(tx['amount'].toString()).toStringAsFixed(2)}",
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       tx['description'] ?? '',
@@ -278,11 +312,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              Text(tx['type'],
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: isIncome ? Colors.green : Colors.red)),
+              Text(
+                tx['type'],
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isIncome ? Colors.green : Colors.red,
+                ),
+              ),
             ],
           ),
         );

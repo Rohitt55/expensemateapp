@@ -50,7 +50,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
 
     try {
-      final amount = int.parse(amountText);
+      final amount = double.parse(amountText); // ✅ Accept float/double input
 
       await DatabaseHelper.instance.addTransaction(
         amount,
@@ -90,7 +90,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             const SizedBox(height: 10),
             TextField(
               controller: _amountController,
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true), // ✅ Allow decimal input
               decoration: const InputDecoration(
                 prefixIcon: Padding(
                   padding: EdgeInsets.all(12.0),

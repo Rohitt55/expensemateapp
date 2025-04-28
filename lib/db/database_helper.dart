@@ -34,7 +34,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        amount INTEGER,
+        amount REAL,  -- ✅ Changed to REAL
         category TEXT,
         type TEXT,
         date TEXT,
@@ -81,7 +81,7 @@ class DatabaseHelper {
     return null;
   }
 
-  Future<int> addTransaction(int amount, String category, String type, String date, String desc) async {
+  Future<int> addTransaction(double amount, String category, String type, String date, String desc) async {
     final db = await database;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('email') ?? '';
@@ -118,7 +118,7 @@ class DatabaseHelper {
       'type': transaction['type'],
       'date': transaction['date'],
       'description': transaction['description'],
-      'userEmail': transaction['userEmail'], // Ensure this is included
+      'userEmail': transaction['userEmail'],
     };
 
     return await db.update(
