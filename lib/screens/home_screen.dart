@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,12 +11,11 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 0;
   String selectedFilter = 'Today';
   List<Map<String, dynamic>> transactions = [];
   double? _monthlyBudget;
-  late AnimationController _fabController;
 
   final List<String> filterOptions = ['Today', 'Week', 'Month', 'Year'];
 
@@ -26,16 +24,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.initState();
     _loadTransactions();
     _loadBudget();
-    _fabController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _fabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadTransactions() async {
@@ -77,7 +65,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   String getFormattedDate() {
     final now = DateTime.now();
-    return DateFormat('d/M/yyyy').format(now);
+    switch (selectedFilter) {
+      case 'Today':
+        return DateFormat('d/M/yyyy').format(now);
+      case 'Week':
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        return "${DateFormat('d/M').format(startOfWeek)} - ${DateFormat('d/M').format(endOfWeek)}";
+      case 'Month':
+        return DateFormat('MMMM yyyy').format(now);
+      case 'Year':
+        return DateFormat('yyyy').format(now);
+      default:
+        return DateFormat('d/M/yyyy').format(now);
+    }
   }
 
   @override
@@ -93,48 +94,52 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF7F0),
       appBar: AppBar(
+        backgroundColor: const Color(0xFFFDF7F0),
         elevation: 0,
-        backgroundColor: Colors.transparent,
         toolbarHeight: 80,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.calendar_month, color: Colors.deepPurple),
-                const SizedBox(width: 6),
-                Text(getFormattedDate(),
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const Text("Account Balance", style: TextStyle(fontSize: 14, color: Colors.black87)),
+            Text(getFormattedDate(), style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+            const Text("Account Balance", style: TextStyle(color: Colors.black87, fontSize: 14)),
           ],
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: CircleAvatar(backgroundColor: Colors.grey[400]),
-          )
-        ],
+        actions: [_buildProfileImage()],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Monthly Budget: ৳${_monthlyBudget?.toStringAsFixed(0) ?? '--'}",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                if (_monthlyBudget != null)
+          if (_monthlyBudget != null) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Monthly Budget: ৳${_monthlyBudget!.toStringAsFixed(0)}",
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   Text("Remaining: ৳${(_monthlyBudget! - expenseTotal).toStringAsFixed(0)}",
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: (expenseTotal > _monthlyBudget!) ? Colors.red : Colors.green)),
-              ],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: (expenseTotal > _monthlyBudget!) ? Colors.red : Colors.green,
+                      )),
+                ],
+              ),
             ),
-          ),
+            if (expenseTotal > _monthlyBudget!)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: const [
+                    Icon(Icons.warning, color: Colors.red),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text("You’ve exceeded your monthly budget!",
+                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -146,42 +151,44 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _buildFilterRow(),
           const SizedBox(height: 10),
           _buildTransactionHeader(),
-          Expanded(child: _buildAnimatedTransactionList()),
+          Expanded(child: _buildTransactionList()),
         ],
       ),
-      floatingActionButton: ScaleTransition(
-        scale: Tween(begin: 1.0, end: 1.1).animate(CurvedAnimation(
-          parent: _fabController,
-          curve: Curves.easeInOut,
-        )),
-        child: FloatingActionButton(
-          onPressed: () => Navigator.pushNamed(context, '/add').then((_) => _loadTransactions()),
-          backgroundColor: Colors.deepPurple,
-          child: const Icon(Icons.add),
-        ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.pushNamed(context, '/add').then((_) => _loadTransactions()),
+        backgroundColor: Colors.grey,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: selectedIndex,
-        onTap: (index) async {
-          setState(() => selectedIndex = index);
-          if (index == 1) {
-            await Navigator.pushNamed(context, '/transactions');
-            _loadTransactions();
+    );
+  }
+
+  Widget _buildProfileImage() {
+    return FutureBuilder<SharedPreferences>(
+      future: SharedPreferences.getInstance(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+          final prefs = snapshot.data!;
+          final imagePath = prefs.getString('profile_image');
+          if (imagePath != null && File(imagePath).existsSync()) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: CircleAvatar(backgroundImage: FileImage(File(imagePath))),
+            );
+          } else {
+            return const Padding(
+              padding: EdgeInsets.only(right: 12.0),
+              child: CircleAvatar(backgroundImage: AssetImage('assets/images/user.png')),
+            );
           }
-          if (index == 2) Navigator.pushNamed(context, '/statistics');
-          if (index == 3) Navigator.pushNamed(context, '/profile');
-        },
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: "Transactions"),
-          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: "Statistics"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-      ),
+        } else {
+          return const Padding(
+            padding: EdgeInsets.only(right: 12.0),
+            child: CircleAvatar(backgroundColor: Colors.blue),
+          );
+        }
+      },
     );
   }
 
@@ -192,6 +199,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ],
           ),
           const SizedBox(height: 12),
-          Text("৳${amount.toStringAsFixed(0)}",
+          Text("৳${formatAmount(amount)}",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
         ],
       ),
@@ -258,7 +272,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAnimatedTransactionList() {
+  Widget _buildTransactionList() {
+    if (filteredTransactions.isEmpty) {
+      return const Center(child: Text("No transactions yet"));
+    }
+
     final limitedList = filteredTransactions.take(5).toList();
 
     return ListView.builder(
@@ -267,54 +285,83 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       itemBuilder: (context, index) {
         final tx = limitedList[index];
         final isIncome = tx['type'] == 'Income';
+
         final cardColor = (isIncome ? Colors.greenAccent : Colors.redAccent).withOpacity(0.1);
 
-        return TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: Duration(milliseconds: 400 + index * 100),
-          builder: (context, value, child) => Opacity(
-            opacity: value,
-            child: Transform.translate(
-              offset: Offset(0, 30 * (1 - value)),
-              child: child,
-            ),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 6,
+                offset: const Offset(0, 4),
+              )
+            ],
           ),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-                    color: isIncome ? Colors.green : Colors.red),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("৳${tx['amount']}",
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text(tx['description'] ?? '',
-                          style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                    ],
-                  ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                  color: isIncome ? Colors.green : Colors.red),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("৳${formatAmount(double.parse(tx['amount'].toString()))}",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(tx['description'] ?? '',
+                        style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                  ],
                 ),
-                Text(tx['type'],
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: isIncome ? Colors.green : Colors.red,
-                    )),
-              ],
-            ),
+              ),
+              Text(tx['type'],
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: isIncome ? Colors.green : Colors.red,
+                  )),
+            ],
           ),
         );
       },
     );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return BottomNavigationBar(
+      currentIndex: selectedIndex,
+      onTap: (index) async {
+        setState(() => selectedIndex = index);
+        if (index == 1) {
+          await Navigator.pushNamed(context, '/transactions');
+          _loadTransactions();
+        }
+        if (index == 2) Navigator.pushNamed(context, '/statistics');
+        if (index == 3) Navigator.pushNamed(context, '/profile');
+      },
+      selectedItemColor: Colors.black,
+      unselectedItemColor: Colors.grey,
+      type: BottomNavigationBarType.fixed,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+        BottomNavigationBarItem(icon: Icon(Icons.list), label: "Transactions"),
+        BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: "Statistics"),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+      ],
+    );
+  }
+}
+
+String formatAmount(double amount) {
+  if (amount == amount.roundToDouble()) {
+    return amount.toStringAsFixed(0);
+  } else {
+    return amount.toStringAsFixed(2);
   }
 }

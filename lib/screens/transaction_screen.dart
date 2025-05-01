@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../db/database_helper.dart';
@@ -14,6 +15,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
   String selectedPeriod = 'Month';
   String selectedType = 'All';
   String searchQuery = '';
+  DateTime selectedDate = DateTime.now();
 
   final List<String> periodOptions = ['Today', 'Week', 'Month', 'Year'];
   final List<String> typeOptions = ['All', 'Income', 'Expense'];
@@ -31,7 +33,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
   }
 
   List<Map<String, dynamic>> get filteredTransactions {
-    final now = DateTime.now();
+    final now = selectedDate;
     return transactions.where((tx) {
       if (selectedType != 'All' && tx['type'] != selectedType) return false;
 
@@ -76,7 +78,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
   }
 
   String getFormattedTransactionDate() {
-    final now = DateTime.now();
+    final now = selectedDate;
     switch (selectedPeriod) {
       case 'Today':
         return DateFormat('d/M/yyyy').format(now);
@@ -146,7 +148,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 Navigator.pop(context);
                 _loadTransactions();
               } catch (e) {
-                print('Error updating transaction: $e');
+                print('Error updating transaction: \$e');
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Update failed')),
                 );
@@ -198,9 +200,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0,2)),
-                      ],
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0,2))],
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -222,9 +222,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0,2)),
-                      ],
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0,2))],
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -246,12 +244,34 @@ class _TransactionScreenState extends State<TransactionScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                "Showing: ${getFormattedTransactionDate()}",
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
+              child: GestureDetector(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                    helpText: "Select Month & Year",
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      selectedDate = picked;
+                    });
+                  }
+                },
+                child: Row(
+                  children: [
+                    Text(
+                      "Showing: ${getFormattedTransactionDate()}",
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    const Icon(Icons.calendar_today, size: 16, color: Colors.deepPurple),
+                  ],
                 ),
               ),
             ),

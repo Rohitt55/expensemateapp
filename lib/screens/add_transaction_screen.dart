@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../db/database_helper.dart';
@@ -12,6 +13,8 @@ class AddTransactionScreen extends StatefulWidget {
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
+
   final List<String> _categories = [
     'Food',
     'Shopping',
@@ -26,6 +29,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   String _selectedType = 'Income';
   DateTime _selectedDate = DateTime.now();
 
+  @override
+  void initState() {
+    super.initState();
+    _dateController.text = DateFormat.yMMMd().format(_selectedDate);
+  }
+
   void _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -34,7 +43,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      setState(() {
+        _selectedDate = picked;
+        _dateController.text = DateFormat.yMMMd().format(picked);
+      });
     }
   }
 
@@ -51,16 +63,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     try {
       final amount = double.parse(amountText);
-
-      // ✅ Save current date + time instead of just selected date
-      final now = DateTime.now();
-      final formattedNow = now.toIso8601String();
+      final formattedDate = _selectedDate.toIso8601String();
 
       await DatabaseHelper.instance.addTransaction(
         amount,
         _selectedCategory,
         _selectedType,
-        formattedNow,
+        formattedDate,
         desc,
       );
 
@@ -80,6 +89,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void dispose() {
     _amountController.dispose();
     _descController.dispose();
+    _dateController.dispose();
     super.dispose();
   }
 
@@ -105,10 +115,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               decoration: const InputDecoration(
                 prefixIcon: Padding(
                   padding: EdgeInsets.all(12.0),
-                  child: Text(
-                    '৳',
-                    style: TextStyle(fontSize: 20),
-                  ),
+                  child: Text('৳', style: TextStyle(fontSize: 20)),
                 ),
                 hintText: "Enter amount",
                 border: OutlineInputBorder(),
@@ -153,12 +160,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
             const SizedBox(height: 20),
             TextFormField(
+              controller: _dateController,
               readOnly: true,
               onTap: _pickDate,
-              decoration: InputDecoration(
-                labelText: DateFormat.yMMMd().format(_selectedDate),
-                border: const OutlineInputBorder(),
-                suffixIcon: const Icon(Icons.calendar_today),
+              decoration: const InputDecoration(
+                labelText: "Date",
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.calendar_today),
               ),
             ),
             const SizedBox(height: 30),
