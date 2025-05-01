@@ -9,6 +9,7 @@ import 'screens/profile_screen.dart';
 import 'screens/statistics_screen.dart';
 import 'screens/transaction_screen.dart';
 import 'screens/add_transaction_screen.dart';
+import 'screens/settings_screen.dart'; // ✅ NEW
 
 void main() {
   runApp(const ExpenseApp());
@@ -22,6 +23,7 @@ class ExpenseApp extends StatelessWidget {
     return MaterialApp(
       title: 'ExpenseMate',
       theme: ThemeData(
+        fontFamily: 'NotoSans', // ✅ Apply global font
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFFFDF7F0),
       ),
@@ -36,6 +38,7 @@ class ExpenseApp extends StatelessWidget {
         '/statistics': (context) => const StatisticsScreen(),
         '/transactions': (context) => const TransactionScreen(),
         '/add': (context) => const AddTransactionScreen(),
+        '/settings': (context) => const SettingsScreen(), // ✅ NEW
       },
     );
   }

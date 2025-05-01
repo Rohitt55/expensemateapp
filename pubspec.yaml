@@ -18,7 +18,10 @@ dependencies:
   fl_chart: ^0.63.0
   csv: ^5.0.2
   image_picker: ^1.0.4
-  permission_handler: ^11.0.1   # ✅ Only this line added
+  permission_handler: ^11.0.1
+  provider: ^6.0.5
+  pdf: ^3.10.4
+  printing: ^5.11.0
 
 dev_dependencies:
   flutter_test:

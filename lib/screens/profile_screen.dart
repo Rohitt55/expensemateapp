@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:csv/csv.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:printing/printing.dart';
 import '../db/database_helper.dart';
+import '../pdf_helper.dart'; // ✅ PDF helper
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -63,57 +64,92 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _exportData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('email') ?? '';
+  Future<void> _exportAsPDFWithFilters() async {
+    final categoryOptions = ['All', 'Income', 'Expense'];
+    String selectedCategory = 'All';
+    DateTime? startDate;
+    DateTime? endDate;
 
-    final allTransactions = await DatabaseHelper.instance.getAllTransactions();
-    List<List<dynamic>> csvData = [
-      ['ID', 'Amount', 'Category', 'Type', 'Date', 'Description'],
-      ...allTransactions.map((tx) => [
-        tx['id'],
-        tx['amount'],
-        tx['category'],
-        tx['type'],
-        tx['date'],
-        tx['description'],
-      ]),
-    ];
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text("Export PDF with Filters"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButton<String>(
+                  value: selectedCategory,
+                  items: categoryOptions
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (value) => setState(() => selectedCategory = value!),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () async {
+                          DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) setState(() => startDate = picked);
+                        },
+                        child: Text(startDate == null
+                            ? 'Start Date'
+                            : '${startDate!.day}/${startDate!.month}/${startDate!.year}'),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () async {
+                          DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) setState(() => endDate = picked);
+                        },
+                        child: Text(endDate == null
+                            ? 'End Date'
+                            : '${endDate!.day}/${endDate!.month}/${endDate!.year}'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
 
-    String csv = const ListToCsvConverter().convert(csvData);
+                  final file = await PDFHelper.generateTransactionPdf(
+                    user: user!,
+                    categoryFilter: selectedCategory,
+                    startDate: startDate,
+                    endDate: endDate,
+                  );
 
-    if (await Permission.manageExternalStorage.request().isGranted) {
-      Directory? downloadsDirectory;
-      if (Platform.isAndroid) {
-        downloadsDirectory = Directory('/storage/emulated/0/Download');
-      } else {
-        downloadsDirectory = await getApplicationDocumentsDirectory();
-      }
-
-      final path = "${downloadsDirectory.path}/transactions_${email.replaceAll('@', '_').replaceAll('.', '_')}.csv";
-      final file = File(path);
-      await file.writeAsString(csv);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: const [
-              Icon(Icons.check_circle, color: Colors.green),
-              SizedBox(width: 10),
-              Text("Exported successfully to Downloads!")
+                  await Printing.sharePdf(
+                    bytes: await file.readAsBytes(),
+                    filename: file.path.split('/').last,
+                  );
+                },
+                child: const Text("Generate PDF"),
+              ),
             ],
           ),
-          backgroundColor: Colors.black87,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Storage permission denied. Please allow from settings."),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    }
+        );
+      },
+    );
   }
 
   Future<void> _logout() async {
@@ -168,8 +204,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildProfileDetail(Icons.email, "Email", email),
             _buildProfileDetail(Icons.phone, "Phone", phone),
             const SizedBox(height: 20),
-            _buildProfileOption(Icons.settings, "Settings", () {}),
-            _buildProfileOption(Icons.file_download, "Export Data", _exportData),
+            _buildProfileOption(Icons.settings, "Settings", () {
+              Navigator.pushNamed(context, '/settings');
+            }),
+            _buildProfileOption(Icons.picture_as_pdf, "Export as PDF", _exportAsPDFWithFilters),
             _buildProfileOption(Icons.logout, "Logout", _logout, color: Colors.redAccent),
           ],
         ),

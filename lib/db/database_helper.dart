@@ -34,7 +34,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        amount REAL,  -- ✅ Changed to REAL
+        amount REAL,
         category TEXT,
         type TEXT,
         date TEXT,
@@ -135,6 +135,50 @@ class DatabaseHelper {
       'transactions',
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  Future<void> resetAllTransactionsForUser() async {
+    final db = await database;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email') ?? '';
+    await db.delete(
+      'transactions',
+      where: 'userEmail = ?',
+      whereArgs: [email],
+    );
+  }
+
+  // ✅ Change user password with old password
+  Future<int> updateUserPassword(String email, String oldPassword, String newPassword) async {
+    final db = await database;
+
+    final result = await db.query(
+      'users',
+      where: 'email = ? AND password = ?',
+      whereArgs: [email, oldPassword],
+    );
+
+    if (result.isNotEmpty) {
+      return await db.update(
+        'users',
+        {'password': newPassword},
+        where: 'email = ?',
+        whereArgs: [email],
+      );
+    } else {
+      return 0; // Wrong old password
+    }
+  }
+
+  // ✅ Forgot password support: reset password without old password
+  Future<int> resetPassword(String email, String newPassword) async {
+    final db = await database;
+    return await db.update(
+      'users',
+      {'password': newPassword},
+      where: 'email = ?',
+      whereArgs: [email],
     );
   }
 }

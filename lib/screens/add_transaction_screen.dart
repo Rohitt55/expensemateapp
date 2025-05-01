@@ -52,11 +52,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     try {
       final amount = double.parse(amountText);
 
+      // ✅ Save current date + time instead of just selected date
+      final now = DateTime.now();
+      final formattedNow = now.toIso8601String();
+
       await DatabaseHelper.instance.addTransaction(
         amount,
         _selectedCategory,
         _selectedType,
-        _selectedDate.toIso8601String(),
+        formattedNow,
         desc,
       );
 
@@ -70,6 +74,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const SnackBar(content: Text('Invalid amount value')),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descController.dispose();
+    super.dispose();
   }
 
   @override
@@ -90,7 +101,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             const SizedBox(height: 10),
             TextField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true), // ✅ Allow decimal input
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
                 prefixIcon: Padding(
                   padding: EdgeInsets.all(12.0),

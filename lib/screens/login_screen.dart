@@ -36,6 +36,73 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // ✅ Forgot Password dialog
+  void _showForgotPasswordDialog() {
+    final emailController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Reset Password"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: "Registered Email"),
+            ),
+            TextField(
+              controller: newPassController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "New Password"),
+            ),
+            TextField(
+              controller: confirmPassController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "Confirm Password"),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              final newPass = newPassController.text.trim();
+              final confirm = confirmPassController.text.trim();
+
+              if (newPass != confirm) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Passwords do not match")),
+                );
+                return;
+              }
+
+              final result = await DatabaseHelper.instance.resetPassword(email, newPass);
+              Navigator.pop(context);
+
+              if (result > 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Password reset successfully!")),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Email not found.")),
+                );
+              }
+            },
+            child: const Text("Reset"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,7 +133,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   Checkbox(value: _rememberMe, onChanged: (val) => setState(() => _rememberMe = val!)),
                   const Text("Remember Me"),
                   const Spacer(),
-                  TextButton(onPressed: () {}, child: const Text("Forgot Password?", style: TextStyle(color: Colors.red))),
+                  TextButton(
+                    onPressed: _showForgotPasswordDialog,
+                    child: const Text("Forgot Password?", style: TextStyle(color: Colors.red)),
+                  ),
                 ],
               ),
               ElevatedButton(

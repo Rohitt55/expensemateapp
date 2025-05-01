@@ -13,9 +13,11 @@ class _TransactionScreenState extends State<TransactionScreen> {
   List<Map<String, dynamic>> transactions = [];
   String selectedPeriod = 'Month';
   String selectedType = 'All';
+  String searchQuery = '';
 
   final List<String> periodOptions = ['Today', 'Week', 'Month', 'Year'];
   final List<String> typeOptions = ['All', 'Income', 'Expense'];
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -36,24 +38,40 @@ class _TransactionScreenState extends State<TransactionScreen> {
       final txDate = DateTime.parse(tx['date']);
       final normalizedTxDate = DateTime(txDate.year, txDate.month, txDate.day);
 
+      bool dateMatch;
       switch (selectedPeriod) {
         case 'Today':
           final today = DateTime(now.year, now.month, now.day);
-          return normalizedTxDate == today;
+          dateMatch = normalizedTxDate == today;
+          break;
         case 'Week':
           final startOfWeek = DateTime(now.year, now.month, now.day)
               .subtract(Duration(days: now.weekday - 1));
           final endOfWeek = startOfWeek.add(const Duration(days: 6));
-          return normalizedTxDate.isAtSameMomentAs(startOfWeek) ||
+          dateMatch = normalizedTxDate.isAtSameMomentAs(startOfWeek) ||
               (normalizedTxDate.isAfter(startOfWeek) &&
                   normalizedTxDate.isBefore(endOfWeek.add(const Duration(days: 1))));
+          break;
         case 'Month':
-          return txDate.year == now.year && txDate.month == now.month;
+          dateMatch = txDate.year == now.year && txDate.month == now.month;
+          break;
         case 'Year':
-          return txDate.year == now.year;
+          dateMatch = txDate.year == now.year;
+          break;
         default:
-          return true;
+          dateMatch = true;
       }
+
+      final category = (tx['category'] ?? '').toString().toLowerCase();
+      final description = (tx['description'] ?? '').toString().toLowerCase();
+      final amount = (tx['amount'] ?? '').toString().toLowerCase();
+      final search = searchQuery.toLowerCase();
+
+      bool searchMatch = category.contains(search)
+          || description.contains(search)
+          || amount.contains(search);
+
+      return dateMatch && searchMatch;
     }).toList();
   }
 
@@ -171,45 +189,91 @@ class _TransactionScreenState extends State<TransactionScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                DropdownButton<String>(
-                  value: selectedPeriod,
-                  items: periodOptions
-                      .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedPeriod = value!;
-                    });
-                  },
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0,2)),
+                      ],
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedPeriod,
+                        items: periodOptions.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedPeriod = value!;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 20),
-                DropdownButton<String>(
-                  value: selectedType,
-                  items: typeOptions
-                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedType = value!;
-                    });
-                  },
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0,2)),
+                      ],
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedType,
+                        items: typeOptions.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedType = value!;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 "Showing: ${getFormattedTransactionDate()}",
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: Colors.deepPurple,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Search by category, note or amount',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
                 ),
               ),
             ),
@@ -222,12 +286,24 @@ class _TransactionScreenState extends State<TransactionScreen> {
               itemBuilder: (context, index) {
                 final tx = filteredTransactions[index];
                 final amount = (tx["amount"] as num).toDouble();
+                final isIncome = tx["type"] == "Income";
+
                 return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 4,
                   child: ListTile(
-                    title: Text("${tx["category"]} - ৳${formatAmount(amount)}"),
+                    leading: CircleAvatar(
+                      backgroundColor: isIncome ? Colors.greenAccent : Colors.redAccent,
+                      child: Icon(
+                        isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                        color: Colors.white,
+                      ),
+                    ),
+                    title: Text("${tx["category"]} - ৳${formatAmount(amount)}", style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(
-                      "${tx["description"]} • ${DateFormat.yMMMd().format(DateTime.parse(tx["date"]))}",
+                      "${tx["description"]} • ${DateFormat.yMMMd().add_jm().format(DateTime.parse(tx["date"]))}",
+                      style: const TextStyle(fontSize: 12),
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,

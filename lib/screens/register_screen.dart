@@ -23,12 +23,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = _passwordController.text.trim();
 
     if (username.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All fields are required')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All fields are required')),
+      );
+      return;
+    }
+
+    if (phone.length != 11) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Phone number must be exactly 11 digits')),
+      );
       return;
     }
 
     await DatabaseHelper.instance.registerUser(username, email, phone, password);
-
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('email', email);
@@ -46,19 +54,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: ListView(
             children: [
               const SizedBox(height: 50),
-              const Text("Create an account", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const Text(
+                "Create an account",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 30),
-              TextField(controller: _usernameController, decoration: const InputDecoration(labelText: 'Enter Your Username')),
+              TextField(
+                controller: _usernameController,
+                decoration: const InputDecoration(
+                  labelText: 'Enter Your Username',
+                  border: OutlineInputBorder(),
+                ),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: _emailController, decoration: const InputDecoration(labelText: 'Enter Your Email')),
+              TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Enter Your Email',
+                  border: OutlineInputBorder(),
+                ),
+              ),
               const SizedBox(height: 10),
-              TextField(controller: _phoneController, decoration: const InputDecoration(labelText: 'Enter Your Phone Number')),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Enter Your Phone Number',
+                  border: OutlineInputBorder(),
+                ),
+              ),
               const SizedBox(height: 10),
               TextField(
                 controller: _passwordController,
                 obscureText: _obscure,
                 decoration: InputDecoration(
                   labelText: 'Enter Your Password',
+                  border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
                     onPressed: () => setState(() => _obscure = !_obscure),
@@ -69,7 +100,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
                 onPressed: _register,
-                child: const Text("Sign Up", style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  "Sign Up",
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
               const SizedBox(height: 20),
               const Divider(),
@@ -79,7 +113,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const Text("Already have an account? "),
                   GestureDetector(
                     onTap: () => Navigator.pushReplacementNamed(context, '/login'),
-                    child: const Text("Login", style: TextStyle(color: Colors.blue)),
+                    child: const Text(
+                      "Login",
+                      style: TextStyle(color: Colors.blue),
+                    ),
                   ),
                 ],
               ),
