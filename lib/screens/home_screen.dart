@@ -116,16 +116,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text("Monthly Budget: ৳${_monthlyBudget!.toStringAsFixed(0)}",
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text("Remaining: ৳${(_monthlyBudget! - expenseTotal).toStringAsFixed(0)}",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: (expenseTotal > _monthlyBudget!) ? Colors.red : Colors.green,
-                      )),
+                  if (selectedFilter == 'Month')
+                    Text("Remaining: ৳${(_monthlyBudget! - expenseTotal).toStringAsFixed(0)}",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: (expenseTotal > _monthlyBudget!) ? Colors.red : Colors.green,
+                        )),
                 ],
               ),
             ),
-            if (expenseTotal > _monthlyBudget!)
+            if (selectedFilter == 'Month' && expenseTotal > _monthlyBudget!)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(

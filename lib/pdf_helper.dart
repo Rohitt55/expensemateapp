@@ -13,8 +13,8 @@ class PDFHelper {
     DateTime? endDate,
   }) async {
     final pdf = pw.Document();
-
     final allTransactions = await DatabaseHelper.instance.getAllTransactions();
+
     final filteredTransactions = allTransactions.where((tx) {
       final txDate = DateTime.parse(tx['date']);
       final isAfterStart = startDate == null || txDate.isAtSameMomentAs(startDate) || txDate.isAfter(startDate);
@@ -25,16 +25,16 @@ class PDFHelper {
 
     final tableHeaders = ['Date', 'Amount', 'Category', 'Type', 'Description'];
     final tableData = filteredTransactions.map((tx) {
+      final formattedDate = DateFormat('d MMM yyyy, hh:mm a').format(DateTime.parse(tx['date']));
       return [
-        tx['date'],
-        "${tx['amount']}", // ✅ No currency symbol
+        formattedDate,
+        "${tx['amount']}",
         tx['category'],
         tx['type'],
-        tx['description'],
+        tx['description'] ?? '',
       ];
     }).toList();
 
-    // Summary calculations
     final totalIncome = filteredTransactions
         .where((tx) => tx['type'] == 'Income')
         .fold<double>(0, (sum, tx) => sum + (tx['amount'] as num).toDouble());
@@ -51,6 +51,7 @@ class PDFHelper {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(24),
         build: (context) => [
           pw.Header(
             level: 0,
@@ -63,33 +64,32 @@ class PDFHelper {
           if (user['phone'] != null) pw.Text('Phone: ${user['phone']}'),
           pw.SizedBox(height: 10),
 
-          // Filters
           if (startDate != null || endDate != null || categoryFilter != 'All')
-            pw.Column(children: [
-              pw.Text(
-                'Filters: ${startDate != null ? 'From ${DateFormat.yMMMd().format(startDate)}' : ''}'
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(vertical: 4),
+              child: pw.Text(
+                'Filters: '
+                    '${startDate != null ? 'From ${DateFormat.yMMMd().format(startDate)}' : ''}'
                     '${endDate != null ? ' to ${DateFormat.yMMMd().format(endDate)}' : ''} '
                     '${categoryFilter != 'All' ? '| Type: $categoryFilter' : ''}',
                 style: pw.TextStyle(fontSize: 12, fontStyle: pw.FontStyle.italic),
               ),
-              pw.SizedBox(height: 8),
-            ]),
+            ),
 
-          // Summary Section
+          pw.SizedBox(height: 10),
           pw.Text("Summary", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
           pw.Bullet(text: "Total Income: ${totalIncome.toStringAsFixed(2)}"),
           pw.Bullet(text: "Total Expense: ${totalExpense.toStringAsFixed(2)}"),
           pw.Bullet(text: "Balance: ${balance.toStringAsFixed(2)}"),
-          pw.SizedBox(height: 12),
+          pw.SizedBox(height: 10),
 
-          // Table
           pw.TableHelper.fromTextArray(
             headers: tableHeaders,
             data: tableData,
-            border: pw.TableBorder.all(),
+            border: pw.TableBorder.all(width: 0.5),
             cellStyle: pw.TextStyle(fontSize: 10),
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-            headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+            headerDecoration: pw.BoxDecoration(color: PdfColors.blueGrey),
             cellAlignment: pw.Alignment.centerLeft,
             headerAlignment: pw.Alignment.center,
           ),
