@@ -171,7 +171,7 @@ class DatabaseHelper {
     }
   }
 
-  // ✅ Forgot password support: reset password without old password
+
   Future<int> resetPassword(String email, String newPassword) async {
     final db = await database;
     return await db.update(

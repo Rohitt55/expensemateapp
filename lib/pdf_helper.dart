@@ -17,22 +17,10 @@ class PDFHelper {
 
     final filteredTransactions = allTransactions.where((tx) {
       final txDate = DateTime.parse(tx['date']);
-      final isAfterStart = startDate == null || txDate.isAtSameMomentAs(startDate) || txDate.isAfter(startDate);
-      final isBeforeEnd = endDate == null || txDate.isAtSameMomentAs(endDate) || txDate.isBefore(endDate.add(const Duration(days: 1)));
+      final isAfterStart = startDate == null || !txDate.isBefore(startDate);
+      final isBeforeEnd = endDate == null || !txDate.isAfter(endDate);
       final matchesType = categoryFilter == 'All' || tx['type'] == categoryFilter;
       return isAfterStart && isBeforeEnd && matchesType;
-    }).toList();
-
-    final tableHeaders = ['Date', 'Amount', 'Category', 'Type', 'Description'];
-    final tableData = filteredTransactions.map((tx) {
-      final formattedDate = DateFormat('d MMM yyyy, hh:mm a').format(DateTime.parse(tx['date']));
-      return [
-        formattedDate,
-        "${tx['amount']}",
-        tx['category'],
-        tx['type'],
-        tx['description'] ?? '',
-      ];
     }).toList();
 
     final totalIncome = filteredTransactions
@@ -48,6 +36,18 @@ class PDFHelper {
     final now = DateTime.now();
     final reportTitle = 'Transaction Report - ${DateFormat('MMMM yyyy').format(now)}';
 
+    final tableHeaders = ['Date', 'Amount', 'Category', 'Type', 'Description'];
+    final tableData = filteredTransactions.map((tx) {
+      final formattedDate = DateFormat('d MMM yyyy, hh:mm a').format(DateTime.parse(tx['date']));
+      return [
+        formattedDate,
+        "${tx['amount']}", // Removed Taka symbol
+        tx['category'] ?? '-',
+        tx['type'],
+        tx['description'] ?? '',
+      ];
+    }).toList();
+
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
@@ -55,10 +55,8 @@ class PDFHelper {
         build: (context) => [
           pw.Header(
             level: 0,
-            child: pw.Text(
-              reportTitle,
-              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
-            ),
+            child: pw.Text(reportTitle,
+                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
           ),
           pw.Text('User: ${user['username']} (${user['email']})'),
           if (user['phone'] != null) pw.Text('Phone: ${user['phone']}'),
@@ -68,11 +66,11 @@ class PDFHelper {
             pw.Container(
               padding: const pw.EdgeInsets.symmetric(vertical: 4),
               child: pw.Text(
-                'Filters: '
-                    '${startDate != null ? 'From ${DateFormat.yMMMd().format(startDate)}' : ''}'
-                    '${endDate != null ? ' to ${DateFormat.yMMMd().format(endDate)}' : ''} '
+                'Filters Applied: '
+                    '${startDate != null ? 'From: ${DateFormat.yMMMd().format(startDate)} ' : ''}'
+                    '${endDate != null ? 'To: ${DateFormat.yMMMd().format(endDate)} ' : ''}'
                     '${categoryFilter != 'All' ? '| Type: $categoryFilter' : ''}',
-                style: pw.TextStyle(fontSize: 12, fontStyle: pw.FontStyle.italic),
+                style: pw.TextStyle(fontSize: 11, fontStyle: pw.FontStyle.italic),
               ),
             ),
 
@@ -81,24 +79,31 @@ class PDFHelper {
           pw.Bullet(text: "Total Income: ${totalIncome.toStringAsFixed(2)}"),
           pw.Bullet(text: "Total Expense: ${totalExpense.toStringAsFixed(2)}"),
           pw.Bullet(text: "Balance: ${balance.toStringAsFixed(2)}"),
-          pw.SizedBox(height: 10),
+          pw.SizedBox(height: 12),
 
           pw.TableHelper.fromTextArray(
             headers: tableHeaders,
             data: tableData,
-            border: pw.TableBorder.all(width: 0.5),
+            border: pw.TableBorder.all(width: 0.4),
             cellStyle: pw.TextStyle(fontSize: 10),
             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-            headerDecoration: pw.BoxDecoration(color: PdfColors.blueGrey),
+            headerDecoration: pw.BoxDecoration(color: PdfColors.blueGrey800),
             cellAlignment: pw.Alignment.centerLeft,
             headerAlignment: pw.Alignment.center,
+            columnWidths: {
+              0: const pw.FlexColumnWidth(2),
+              1: const pw.FlexColumnWidth(1.2),
+              2: const pw.FlexColumnWidth(1.5),
+              3: const pw.FlexColumnWidth(1.2),
+              4: const pw.FlexColumnWidth(3),
+            },
           ),
         ],
       ),
     );
 
-    final output = await getApplicationDocumentsDirectory();
-    final file = File('${output.path}/transactions_${now.millisecondsSinceEpoch}.pdf');
+    final outputDir = await getApplicationDocumentsDirectory();
+    final file = File('${outputDir.path}/transactions_${now.millisecondsSinceEpoch}.pdf');
     await file.writeAsBytes(await pdf.save());
     return file;
   }

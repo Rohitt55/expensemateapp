@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 import '../db/database_helper.dart';
 
 class StatisticsScreen extends StatefulWidget {
@@ -34,7 +36,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   List<Map<String, dynamic>> get filteredByWeekAndType {
     final weekEnd = selectedWeekStart.add(const Duration(days: 6));
-
     return allTransactions.where((tx) {
       final txDate = DateTime.parse(tx['date']);
       return tx['type'] == (showIncome ? 'Income' : 'Expense') &&
@@ -58,8 +59,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       return BarChartGroupData(x: i, barRods: [
         BarChartRodData(
           toY: total,
-          width: 12,
-          borderRadius: BorderRadius.circular(4),
+          width: 12.w,
+          borderRadius: BorderRadius.circular(4.r),
           color: showIncome ? Colors.green : Colors.redAccent,
         )
       ]);
@@ -105,53 +106,55 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Weekly Report", style: TextStyle(color: Colors.black)),
+        title: Text("Weekly Report", style: TextStyle(color: Colors.black, fontSize: 18.sp)),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Week: ", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: () => _selectWeek(context),
-                  icon: const Icon(Icons.calendar_today, size: 18),
-                  label: Text(weekRange),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                Row(
+                  children: [
+                    Text("Week: ", style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                    SizedBox(width: 8.w),
+                    ElevatedButton.icon(
+                      onPressed: () => _selectWeek(context),
+                      icon: Icon(Icons.calendar_today, size: 18.sp),
+                      label: Text(weekRange, style: TextStyle(fontSize: 12.sp)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16.h),
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                  child: Padding(
+                    padding: EdgeInsets.all(16.w),
+                    child: _buildBarChart(),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              flex: 3,
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: _buildBarChart(),
+                SizedBox(height: 16.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildToggleButton("Expense", !showIncome, () => setState(() => showIncome = false), Colors.redAccent),
+                    SizedBox(width: 12.w),
+                    _buildToggleButton("Income", showIncome, () => setState(() => showIncome = true), Colors.green),
+                  ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildToggleButton("Expense", !showIncome, () => setState(() => showIncome = false), Colors.redAccent),
-                const SizedBox(width: 12),
-                _buildToggleButton("Income", showIncome, () => setState(() => showIncome = true), Colors.green),
+                SizedBox(height: 16.h),
+                _buildCategoryList(categoryData, total),
               ],
             ),
-            const SizedBox(height: 16),
-            Expanded(child: _buildCategoryList(categoryData, total)),
-          ],
+          ),
         ),
       ),
     );
@@ -165,9 +168,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       children: [
         Text(
           "Weekly ${showIncome ? 'Income' : 'Expenses'}",
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10.h),
         AspectRatio(
           aspectRatio: 1.7,
           child: BarChart(
@@ -177,7 +180,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   sideTitles: SideTitles(
                     showTitles: true,
                     getTitlesWidget: (value, _) {
-                      return Text(days[value.toInt() % 7], style: const TextStyle(fontSize: 11));
+                      return Text(days[value.toInt() % 7], style: TextStyle(fontSize: 11.sp));
                     },
                   ),
                 ),
@@ -185,9 +188,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   sideTitles: SideTitles(
                     showTitles: true,
                     interval: 1000,
-                    reservedSize: 36,
+                    reservedSize: 36.w,
                     getTitlesWidget: (value, _) {
-                      return Text("${value.toInt()}", style: const TextStyle(fontSize: 10));
+                      return Text("${value.toInt()}", style: TextStyle(fontSize: 10.sp));
                     },
                   ),
                 ),
@@ -216,52 +219,57 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
         decoration: BoxDecoration(
           color: selected ? color : Colors.grey[300],
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
           boxShadow: selected
               ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 3))]
               : [],
         ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : Colors.black)),
+        child: Text(label, style: TextStyle(color: selected ? Colors.white : Colors.black, fontSize: 14.sp)),
       ),
     );
   }
 
   Widget _buildCategoryList(Map<String, int> categoryData, int total) {
     if (categoryData.isEmpty) {
-      return const Center(child: Text("No data available"));
+      return Padding(
+        padding: EdgeInsets.only(top: 16.h),
+        child: Center(child: Text("No data available", style: TextStyle(fontSize: 14.sp))),
+      );
     }
 
-    return ListView(
+    return Column(
       children: categoryData.entries.map((entry) {
         final percent = total == 0 ? 0.0 : entry.value / total;
         final color = showIncome ? Colors.green : Colors.redAccent;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(radius: 6, backgroundColor: color),
-                const SizedBox(width: 8),
-                Expanded(child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w500))),
-                Text("৳ ${entry.value}", style: const TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: percent,
-                minHeight: 8,
-                backgroundColor: Colors.grey[300],
-                valueColor: AlwaysStoppedAnimation<Color>(color),
+        return Padding(
+          padding: EdgeInsets.only(bottom: 14.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(radius: 6.r, backgroundColor: color),
+                  SizedBox(width: 8.w),
+                  Expanded(child: Text(entry.key, style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14.sp))),
+                  Text("৳ ${entry.value}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
+                ],
               ),
-            ),
-            const SizedBox(height: 14),
-          ],
+              SizedBox(height: 6.h),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6.r),
+                child: LinearProgressIndicator(
+                  value: percent,
+                  minHeight: 8.h,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
+            ],
+          ),
         );
       }).toList(),
     );

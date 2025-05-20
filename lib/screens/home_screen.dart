@@ -97,12 +97,30 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFFFDF7F0),
         elevation: 0,
         toolbarHeight: 80,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(getFormattedDate(), style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-            const Text("Account Balance", style: TextStyle(color: Colors.black87, fontSize: 14)),
-          ],
+        title: Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.calendar_today, size: 20, color: Colors.black87),
+              const SizedBox(width: 6),
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: "${getFormattedDate()}\n",
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const TextSpan(
+                      text: "Account Balance",
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w400, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [_buildProfileImage()],
       ),
@@ -119,10 +137,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (selectedFilter == 'Month')
                     Text("Remaining: ৳${(_monthlyBudget! - expenseTotal).toStringAsFixed(0)}",
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: (expenseTotal > _monthlyBudget!) ? Colors.red : Colors.green,
-                        )),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: (expenseTotal > _monthlyBudget!) ? Colors.red : Colors.green)),
                 ],
               ),
             ),
@@ -201,11 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          )
+          BoxShadow(color: color.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))
         ],
       ),
       child: Column(
@@ -278,13 +291,13 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Center(child: Text("No transactions yet"));
     }
 
-    final limitedList = filteredTransactions.take(5).toList();
+    final transactionList = filteredTransactions;
 
     return ListView.builder(
-      itemCount: limitedList.length,
+      itemCount: transactionList.length,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       itemBuilder: (context, index) {
-        final tx = limitedList[index];
+        final tx = transactionList[index];
         final isIncome = tx['type'] == 'Income';
 
         final cardColor = (isIncome ? Colors.greenAccent : Colors.redAccent).withOpacity(0.1);
@@ -296,11 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
             color: cardColor,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                blurRadius: 6,
-                offset: const Offset(0, 4),
-              )
+              BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 6, offset: const Offset(0, 4))
             ],
           ),
           child: Row(
@@ -323,10 +332,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Text(tx['type'],
                   style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: isIncome ? Colors.green : Colors.red,
-                  )),
+                      fontSize: 13, fontWeight: FontWeight.bold, color: isIncome ? Colors.green : Colors.red)),
             ],
           ),
         );
@@ -360,9 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 String formatAmount(double amount) {
-  if (amount == amount.roundToDouble()) {
-    return amount.toStringAsFixed(0);
-  } else {
-    return amount.toStringAsFixed(2);
-  }
+  return amount == amount.roundToDouble()
+      ? amount.toStringAsFixed(0)
+      : amount.toStringAsFixed(2);
 }

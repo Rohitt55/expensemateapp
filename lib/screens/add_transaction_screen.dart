@@ -1,6 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../db/database_helper.dart';
 
 class AddTransactionScreen extends StatefulWidget {
@@ -22,7 +22,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     'Salary',
     'Subscription',
     'Grocery',
-    'Personal'
+    'Personal',
+    'Medicine', // Changed from Health
+    'Others'    // Newly added
   ];
 
   String _selectedCategory = 'Food';
@@ -100,85 +102,97 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFFDF7F0),
         elevation: 0,
-        title: const Text("Add Transaction", style: TextStyle(color: Colors.black)),
+        title: Text("Add Transaction", style: TextStyle(color: Colors.black, fontSize: 18.sp)),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: ListView(
-          children: [
-            const Text("How much?", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                prefixIcon: Padding(
-                  padding: EdgeInsets.all(12.0),
-                  child: Text('৳', style: TextStyle(fontSize: 20)),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("How much?", style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+              SizedBox(height: 10.h),
+              TextField(
+                controller: _amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.all(12.w),
+                    child: Text('৳', style: TextStyle(fontSize: 20.sp)),
+                  ),
+                  hintText: "Enter amount",
+                  border: const OutlineInputBorder(),
                 ),
-                hintText: "Enter amount",
-                border: OutlineInputBorder(),
               ),
-            ),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              value: _selectedCategory,
-              items: _categories.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-              onChanged: (val) => setState(() => _selectedCategory = val!),
-              decoration: const InputDecoration(
-                labelText: "Category",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _descController,
-              decoration: const InputDecoration(
-                labelText: "Description",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ChoiceChip(
-                  label: const Text("Income"),
-                  selected: _selectedType == 'Income',
-                  selectedColor: Colors.green,
-                  onSelected: (val) => setState(() => _selectedType = 'Income'),
+              SizedBox(height: 20.h),
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                items: _categories
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontSize: 14.sp))))
+                    .toList(),
+                onChanged: (val) => setState(() => _selectedCategory = val!),
+                decoration: InputDecoration(
+                  labelText: "Category",
+                  labelStyle: TextStyle(fontSize: 14.sp),
+                  border: const OutlineInputBorder(),
                 ),
-                const SizedBox(width: 12),
-                ChoiceChip(
-                  label: const Text("Expense"),
-                  selected: _selectedType == 'Expense',
-                  selectedColor: Colors.red,
-                  onSelected: (val) => setState(() => _selectedType = 'Expense'),
+              ),
+              SizedBox(height: 20.h),
+              TextField(
+                controller: _descController,
+                decoration: InputDecoration(
+                  labelText: "Description",
+                  labelStyle: TextStyle(fontSize: 14.sp),
+                  border: const OutlineInputBorder(),
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: _dateController,
-              readOnly: true,
-              onTap: _pickDate,
-              decoration: const InputDecoration(
-                labelText: "Date",
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.calendar_today),
               ),
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _saveTransaction,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+              SizedBox(height: 20.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ChoiceChip(
+                    label: Text("Income", style: TextStyle(fontSize: 14.sp)),
+                    selected: _selectedType == 'Income',
+                    selectedColor: Colors.green,
+                    onSelected: (_) => setState(() => _selectedType = 'Income'),
+                  ),
+                  SizedBox(width: 12.w),
+                  ChoiceChip(
+                    label: Text("Expense", style: TextStyle(fontSize: 14.sp)),
+                    selected: _selectedType == 'Expense',
+                    selectedColor: Colors.red,
+                    onSelected: (_) => setState(() => _selectedType = 'Expense'),
+                  ),
+                ],
               ),
-              child: const Text("Continue", style: TextStyle(fontSize: 16, color: Colors.white)),
-            ),
-          ],
+              SizedBox(height: 20.h),
+              TextFormField(
+                controller: _dateController,
+                readOnly: true,
+                onTap: _pickDate,
+                decoration: InputDecoration(
+                  labelText: "Date",
+                  labelStyle: TextStyle(fontSize: 14.sp),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: const Icon(Icons.calendar_today),
+                ),
+              ),
+              SizedBox(height: 30.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saveTransaction,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                  ),
+                  child: Text("Continue", style: TextStyle(fontSize: 16.sp, color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

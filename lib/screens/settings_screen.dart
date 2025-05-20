@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../db/database_helper.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -32,11 +33,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Set Monthly Budget"),
+        title: Text("Set Monthly Budget", style: TextStyle(fontSize: 16.sp)),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: "Enter amount (৳)"),
+          decoration: InputDecoration(labelText: "Enter amount (৳)", labelStyle: TextStyle(fontSize: 14.sp)),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
@@ -74,7 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Change Password"),
+        title: Text("Change Password", style: TextStyle(fontSize: 16.sp)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -100,7 +101,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               final prefs = await SharedPreferences.getInstance();
               final email = prefs.getString('email') ?? '';
-
               final result = await DatabaseHelper.instance.updateUserPassword(email, oldPass, newPass);
               Navigator.pop(context);
 
@@ -125,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Confirm Reset"),
+        title: Text("Confirm Reset", style: TextStyle(fontSize: 16.sp)),
         content: const Text("Delete all your transactions? This cannot be undone."),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
@@ -149,35 +149,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF7F0),
       appBar: AppBar(
-        title: const Text("Settings", style: TextStyle(color: Colors.black)),
+        title: Text("Settings", style: TextStyle(color: Colors.black, fontSize: 18.sp)),
         backgroundColor: const Color(0xFFFDF7F0),
         iconTheme: const IconThemeData(color: Colors.black),
         elevation: 0,
       ),
-      body: ListView(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.attach_money, color: Colors.green),
-            title: const Text("Set Monthly Budget"),
-            onTap: _setMonthlyBudget,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildOptionCard(
+                icon: Icons.attach_money,
+                title: "Set Monthly Budget",
+                color: Colors.green,
+                onTap: _setMonthlyBudget,
+              ),
+              _buildSwitchTile(
+                icon: Icons.notifications_active,
+                title: "Enable Notifications",
+                value: _notificationsEnabled,
+                onChanged: _toggleNotifications,
+                color: Colors.orange,
+              ),
+              _buildOptionCard(
+                icon: Icons.lock,
+                title: "Change Password",
+                color: Colors.blue,
+                onTap: _changePassword,
+              ),
+              _buildOptionCard(
+                icon: Icons.delete_forever,
+                title: "Reset All Data",
+                color: Colors.red,
+                onTap: _confirmReset,
+                isDanger: true,
+              ),
+            ],
           ),
-          SwitchListTile(
-            secondary: const Icon(Icons.notifications_active, color: Colors.orange),
-            title: const Text("Enable Notifications"),
-            value: _notificationsEnabled,
-            onChanged: _toggleNotifications,
-          ),
-          ListTile(
-            leading: const Icon(Icons.lock, color: Colors.blue),
-            title: const Text("Change Password"),
-            onTap: _changePassword,
-          ),
-          ListTile(
-            leading: const Icon(Icons.delete_forever, color: Colors.red),
-            title: const Text("Reset All Data", style: TextStyle(color: Colors.red)),
-            onTap: _confirmReset,
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionCard({
+    required IconData icon,
+    required String title,
+    required Color color,
+    required VoidCallback onTap,
+    bool isDanger = false,
+  }) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 12.h),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+      elevation: 3,
+      child: ListTile(
+        onTap: onTap,
+        leading: Icon(icon, color: color, size: 24.sp),
+        title: Text(title, style: TextStyle(fontSize: 14.sp, color: isDanger ? Colors.red : Colors.black)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile({
+    required IconData icon,
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required Color color,
+  }) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 12.h),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+      elevation: 3,
+      child: SwitchListTile(
+        secondary: Icon(icon, color: color, size: 24.sp),
+        title: Text(title, style: TextStyle(fontSize: 14.sp)),
+        value: value,
+        onChanged: onChanged,
       ),
     );
   }

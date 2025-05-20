@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:device_preview/device_preview.dart';
 
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
@@ -9,10 +11,15 @@ import 'screens/profile_screen.dart';
 import 'screens/statistics_screen.dart';
 import 'screens/transaction_screen.dart';
 import 'screens/add_transaction_screen.dart';
-import 'screens/settings_screen.dart'; // ✅ NEW
+import 'screens/settings_screen.dart';
 
 void main() {
-  runApp(const ExpenseApp());
+  runApp(
+    DevicePreview(
+      enabled: false, // false in release mode
+      builder: (context) => const ExpenseApp(),
+    ),
+  );
 }
 
 class ExpenseApp extends StatelessWidget {
@@ -20,26 +27,31 @@ class ExpenseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ExpenseMate',
-      theme: ThemeData(
-        fontFamily: 'NotoSans', // ✅ Apply global font
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: const Color(0xFFFDF7F0),
+    return ScreenUtilInit(
+      designSize: const Size(360, 690),
+      builder: (context, child) => MaterialApp(
+        title: 'ExpenseMate',
+        theme: ThemeData(
+          fontFamily: 'NotoSans',
+          primarySwatch: Colors.blue,
+          scaffoldBackgroundColor: const Color(0xFFFDF7F0),
+        ),
+        debugShowCheckedModeBanner: false,
+        locale: DevicePreview.locale(context),
+        builder: DevicePreview.appBuilder,
+        home: const EntryPoint(),
+        routes: {
+          '/welcome': (context) => const WelcomeScreen(),
+          '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(),
+          '/home': (context) => const HomeScreen(),
+          '/profile': (context) => const ProfileScreen(),
+          '/statistics': (context) => const StatisticsScreen(),
+          '/transactions': (context) => const TransactionScreen(),
+          '/add': (context) => const AddTransactionScreen(),
+          '/settings': (context) => const SettingsScreen(),
+        },
       ),
-      debugShowCheckedModeBanner: false,
-      home: const EntryPoint(),
-      routes: {
-        '/welcome': (context) => const WelcomeScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/statistics': (context) => const StatisticsScreen(),
-        '/transactions': (context) => const TransactionScreen(),
-        '/add': (context) => const AddTransactionScreen(),
-        '/settings': (context) => const SettingsScreen(), // ✅ NEW
-      },
     );
   }
 }
@@ -52,36 +64,22 @@ class EntryPoint extends StatefulWidget {
 }
 
 class _EntryPointState extends State<EntryPoint> {
-  Widget? _startScreen;
-
   @override
   void initState() {
     super.initState();
-    _initApp();
-  }
-
-  void _initApp() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool isFirstTime = prefs.getBool('isFirstTime') ?? true;
-    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-
-    if (isFirstTime) {
-      await prefs.setBool('isFirstTime', false);
-      _startScreen = const WelcomeScreen();
-    } else if (isLoggedIn) {
-      _startScreen = const HomeScreen();
-    } else {
-      _startScreen = const LoginScreen();
-    }
-
-    setState(() {});
+    // Directly navigate to welcome screen every time app restarts
+    Future.delayed(Duration.zero, () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_startScreen == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    return _startScreen!;
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
   }
 }
